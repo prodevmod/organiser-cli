@@ -45,6 +45,7 @@ I actually got to use concept like hashing that considered useless (rly) because
 | `status` | Checks active status and targets directory path. |
 | `path` | Displays the target directory path. |
 | `path <dir_path>` | Changes the target folder (requires watcher to be stopped first). |
+| `stats` | Shows storage analytics and category breakdowns. |
 | `scan` | Instantly processes all un-organized files currently in the directory. |
 | `clean` | Archives files older than 30 days into `_Archive/`. |
 | `prune` | Safely removes empty folders recursively. |
