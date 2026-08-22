@@ -12,3 +12,75 @@ My first real world application of my project and I am actually proud of it. Fir
 (I always want to be organised **especialy when it comes to folders** but can never seem to keep track of anything and everything turns out to be messy) 
 while not bloating my pc or occupying a large part of my cpu (at least when it comes to the c++ version) and being incredibly fast. Moreover 
 I actually got to use concept like hashing that considered useless (rly) because I didn't have any prior coding experience (in which I optimised performance).
+
+## Installation
+### Using Releases (recommended)
+  * Navigate to the Releases section.
+  * Download organiser.exe (C++)(recommended) or organiserpy.exe (Python) by clicking on either.
+  * Place the executable in your preferred directory or add it to your system PATH.
+  * Run the executable.
+
+### Compiling from Source (u're weird)
+#### Building the C++ (recommended)
+##### MinGW / g++
+`g++ ./cpp/organiser.cpp -o ./executables/organiser.exe -O3 -lcrypt32`
+
+##### MSVC
+`cl /EHsc /O2 /Fe:.\executables\organiser.exe .\cpp\organiser.cpp Advapi32.lib`
+
+#### Building the Python
+`pip install watchdog pyinstaller`
+
+`pyinstaller --onefile --name organiserpy --distpath ./executables ./python/organiser.py`
+
+## CLI Commands
+
+| Command | Description |
+| :--- | :--- |
+| `start` | Begins real-time directory monitoring in the background. |
+| `stop` | Halts the directory watcher thread/observer. |
+| `status` | Checks active status and targets directory path. |
+| `path` | Displays the target directory path. |
+| `path <dir_path>` | Changes the target folder (requires watcher to be stopped first). |
+| `scan` | Instantly processes all un-organized files currently in the directory. |
+| `clean` | Archives files older than 30 days into `_Archive/`. |
+| `prune` | Safely removes empty folders recursively. |
+| `custom delete <keyword>` | Deletes all files matching a keyword or extension (e.g., `.tmp`). |
+| `custom dir <folder> <kw>`| Moves all files matching a keyword into a targeted subfolder. |
+| `help` | Prints the interactive command menu. |
+| `exit` | Gracefully terminates the application. |
+
+## Y C++ over Python tho
+Both implementations share identical command structures and functionality:
+
+| Feature | C++ Executable (`organiser.exe`) | Python Executable (`organiserpy.exe`) |
+| :--- | :--- | :--- |
+| **Performance** | Instantaneous / Native | Micro-delay on cold start |
+| **Binary Size** | **~265 KB**  *(Recommended)* | **~7.2 MB** |
+| **Dependencies** | None (Native Windows APIs) | PyInstaller / Watchdog runtime bundle |
+
+## A deeper look into categories
+Apps/              (Windows, Mac, Linux installers)
+
+Codes/             (Python, CPP, Web, Data, Scripts, etc.)
+
+Game_Engines/      (Unity, Unreal, Godot assets)
+
+3D_Models/         (Blender, OBJ, FBX, STL, CAD)
+
+Documents/         (PDF, Word, Excel, Markdown)
+
+Images/            (PNG, JPEG, Vector, Photoshop)
+
+Archives/          (ZIP, RAR, 7Z, ISO)
+
+Media/             (Audio, Video)
+
+Duplicates/        (SHA-256 duplicate matches)
+
+_Archive/          (Stale files older than 30 days)
+
+# PLS STAR THIS AMAZING REVOLUTIONARY PROJECT/REPOSITORY
+
+# Author
+Rosario Alexandros Morabito
