@@ -84,7 +84,7 @@ Duplicates/        (SHA-256 duplicate matches)
 
 _Archive/          (Stale files older than 30 days)
 
-# PLS STAR THIS AMAZING REVOLUTIONARY PROJECT/REPOSITORY
+# PLS STAR THIS AMAZING REVOLUTIONARY PROJECT/REPOSITORY (reviewer of hacklub plssssss)
 
 # Author
 Rosario Alexandros Morabito
