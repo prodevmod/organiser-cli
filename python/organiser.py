@@ -18,17 +18,18 @@ CYAN = "\033[96m"
 RESET = "\033[0m"
 
 BANNER = RED + r"""
-  /$$$$$$                                          /$$                                          
- /$$__  $$                                        |__/                                          
-| $$  \ $$  /$$$$$$   /$$$$$$   /$$$$$$  /$$$$$$$  /$$  /$$$$$$$  /$$$$$$   /$$$$$$   /$$$$$$  /$$   /$$
-| $$  | $$ /$$__  $$ /$$__  $$ |____  $$| $$__  $$| $$ /$$_____/ /$$__  $$ /$$__  $$ /$$__  $$| $$  | $$
-| $$  | $$| $$  \__/| $$  \ $$  /$$$$$$$| $$  \ $$| $$|  $$$$$$ | $$$$$$$$| $$  \__/| $$  \ $$| $$  | $$
-| $$  | $$| $$      | $$  | $$ /$$__  $$| $$  | $$| $$ \____  $$| $$_____/| $$      | $$  | $$| $$  | $$
-|  $$$$$$/| $$      |  $$$$$$$|  $$$$$$$| $$  | $$| $$ /$$$$$$$/|  $$$$$$$| $$ /$$  | $$$$$$$/|  $$$$$$$
- \______/ |__/       \____  $$ \_______/|__/  |__/|__/|_______/  \_______/|__/|__/  | $$____/  \____  $$
-                     /$$  \ $$                                                      | $$       /$$  | $$
-                    |  $$$$$$/                                                      | $$      |  $$$$$$/
-                     \______/                                                       |__/       \______/ """ + RESET
+  /$$$$$$                                           /$$                                                       
+ /$$__  $$                                         |__/                                                       
+| $$  \ $$  /$$$$$$   /$$$$$$   /$$$$$$   /$$$$$$$  /$$  /$$$$$$$   /$$$$$$   /$$$$$$   /$$$$$$$  /$$$$$$   /$$$$$$ 
+| $$  | $$ /$$__  $$ /$$__  $$ |____  $$ | $$__  $$| $$ /$$_____/  /$$__  $$ /$$__  $$ /$$_____/ /$$__  $$ /$$__  $$
+| $$  | $$| $$  \__/| $$  \ $$  /$$$$$$$ | $$  \ $$| $$|  $$$$$$  | $$$$$$$$| $$  \__/|  $$$$$$ | $$  \ $$| $$  \ $$
+| $$  | $$| $$      | $$  | $$ /$$__  $$ | $$  | $$| $$ \____  $$ | $$_____/| $$       \____  $$| $$  | $$| $$  | $$
+|  $$$$$$/| $$      |  $$$$$$$|  $$$$$$$ | $$  | $$| $$ /$$$$$$$/ |  $$$$$$$| $$       /$$$$$$$/| $$$$$$/ | $$$$$$/ 
+ \______/ |__/       \____  $$ \_______/ |__/  |__ |__/|_______/   \_______/|__/      |_______/ \______/  \______/  
+                     /$$  \ $$                                                                                
+                    |  $$$$$$/                                                                                
+                     \______/                                                                                
+""" + RESET
 
 # Expanded categories with subfolders
 EXT_MAP = {
@@ -264,6 +265,42 @@ class CLI:
         else:
             self.log("No empty folders found to prune.")
 
+    def print_directory_stats(self):
+        total_bytes = 0
+        total_files = 0
+        category_stats = {}
+
+        for path in self.watch_dir.rglob("*"):
+            if path.is_file() and not path.name.startswith("."):
+                try:
+                    fsize = path.stat().st_size
+                    total_files += 1
+                    total_bytes += fsize
+
+                    rel_path = path.relative_to(self.watch_dir)
+                    top_folder = rel_path.parts[0] if len(rel_path.parts) > 1 else "Misc"
+
+                    if top_folder not in category_stats:
+                        category_stats[top_folder] = [0, 0]
+                    category_stats[top_folder][0] += 1
+                    category_stats[top_folder][1] += fsize
+                except Exception:
+                    pass
+
+        total_mb = total_bytes / (1024 * 1024)
+
+        print(f"\n{CYAN}=== File Hygiene Storage Stats ==={RESET}")
+        print(f"Target Directory: {self.watch_dir}")
+        print(f"Total Files Tracked: {YELLOW}{total_files}{RESET}")
+        print(f"Total Disk Usage: {YELLOW}{total_mb:.2f} MB{RESET}\n")
+        print(f"{'Category / Folder':<25} {'File Count':<15} {'Size (MB)':<15}")
+        print("-" * 55)
+
+        for cat, (fcount, fbytes) in category_stats.items():
+            cat_mb = fbytes / (1024 * 1024)
+            print(f"{cat:<25} {fcount:<15} {cat_mb:<15.2f}")
+        print(f"{CYAN}=================================={RESET}\n")
+
     def print_help(self):
         print(f"\n{CYAN}Available Commands:{RESET}")
         print(f"  {GREEN}start{RESET}                 - Start watching the target directory")
@@ -271,6 +308,7 @@ class CLI:
         print(f"  {YELLOW}status{RESET}                - Check if the watcher is running & current path")
         print(f"  {YELLOW}path{RESET}                  - View current target path or change it (e.g., path C:\\Folder)")
         print(f"  {YELLOW}scan{RESET}                  - Manually organize existing files right now")
+        print(f"  {YELLOW}stats{RESET}                 - Show storage analytics and category breakdowns")
         print(f"  {YELLOW}clean{RESET}                 - Force archive files older than 30 days")
         print(f"  {YELLOW}prune{RESET}                 - Delete all empty folders in the target directory")
         print(f"  {YELLOW}custom delete <word>{RESET}  - Deletes all files recursively containing the word or .extension")
@@ -366,7 +404,6 @@ class CLI:
                         custom_path.mkdir(exist_ok=True)
                         
                         move_count = 0
-                        # Pre-collect to prevent modifying the directory while iterating
                         to_move = [
                             p for p in self.watch_dir.rglob("*") 
                             if p.is_file() and keyword in p.name and custom_path not in p.parents
@@ -391,6 +428,10 @@ class CLI:
                             self.process_file(item)
                             count += 1
                     print(f"{GREEN}Scan complete. Checked {count} files.{RESET}")
+                    
+                elif cmd.lower() == "stats":
+                    print("Analyzing storage footprint...")
+                    self.print_directory_stats()
                     
                 elif cmd.lower() == "clean":
                     print("Archiving old files...")

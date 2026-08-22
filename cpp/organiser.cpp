@@ -11,6 +11,7 @@
 #include <mutex>
 #include <algorithm>
 #include <sstream>
+#include <iomanip>
 #include <windows.h>
 #include <wincrypt.h>
 
@@ -25,18 +26,19 @@ const std::string CYAN = "\033[96m";
 const std::string RESET = "\033[0m";
 
 const std::string BANNER = RED + R"(
-  /$$$$$$                                           /$$                                                        
- /$$__  $$                                         |__/                                                        
-| $$  \ $$  /$$$$$$   /$$$$$$   /$$$$$$  /$$$$$$$  /$$  /$$$$$$$  /$$$$$$   /$$$$$$   /$$$$$$$  /$$$$$$   /$$$$$$ 
-| $$  | $$ /$$__  $$ /$$__  $$ |____  $$| $$__  $$| $$ /$$_____/ /$$__  $$ /$$__  $$ /$$_____/ /$$__  $$ /$$__  $$
-| $$  | $$| $$  \__/| $$  \ $$  /$$$$$$$| $$  \ $$| $$|  $$$$$$ | $$$$$$$$| $$  \__/| $$      | $$  \ $$| $$  \ $$
-| $$  | $$| $$      | $$  | $$ /$$__  $$| $$  | $$| $$ \____  $$| $$_____/| $$      | $$      | $$  | $$| $$  | $$
-|  $$$$$$/| $$      |  $$$$$$$|  $$$$$$$| $$  | $$| $$ /$$$$$$$/|  $$$$$$$| $$ /$$  |  $$$$$$$| $$$$$$$/| $$$$$$$/
- \______/ |__/       \____  $$ \_______/|__/  |__/|__/|_______/  \_______/|__/|__/   \_______/| $$____/ | $$____/ 
-                     /$$  \ $$                                                                | $$      | $$      
-                    |  $$$$$$/                                                                | $$      | $$      
-                     \______/                                                                 |__/      |__/      
+  /$$$$$$                                           /$$                                                       
+ /$$__  $$                                         |__/                                                       
+| $$  \ $$  /$$$$$$   /$$$$$$   /$$$$$$   /$$$$$$$  /$$  /$$$$$$$   /$$$$$$   /$$$$$$   /$$$$$$$  /$$$$$$   /$$$$$$ 
+| $$  | $$ /$$__  $$ /$$__  $$ |____  $$ | $$__  $$| $$ /$$_____/  /$$__  $$ /$$__  $$ /$$_____/ /$$__  $$ /$$__  $$
+| $$  | $$| $$  \__/| $$  \ $$  /$$$$$$$ | $$  \ $$| $$|  $$$$$$  | $$$$$$$$| $$  \__/|  $$$$$$ | $$  \ $$| $$  \ $$
+| $$  | $$| $$      | $$  | $$ /$$__  $$ | $$  | $$| $$ \____  $$ | $$_____/| $$       \____  $$| $$  | $$| $$  | $$
+|  $$$$$$/| $$      |  $$$$$$$|  $$$$$$$ | $$  | $$| $$ /$$$$$$$/ |  $$$$$$$| $$       /$$$$$$$/| $$$$$$/ | $$$$$$/ 
+ \______/ |__/       \____  $$ \_______/ |__/  |__ |__/|_______/   \_______/|__/      |_______/ \______/  \______/  
+                     /$$  \ $$                                                                                
+                    |  $$$$$$/                                                                                
+                     \______/                                                                                
 )" + RESET;
+
 const std::map<std::string, std::string> EXTENSION_MAP = {
     // Apps
     {".exe", "Apps/Windows"}, {".msi", "Apps/Windows"},
@@ -218,7 +220,7 @@ void process_file(const fs::path& file_path, const fs::path& watch_dir, std::set
     }
 
     fs::path target_dir = watch_dir / target_category;
-    fs::create_directories(target_dir, ec); // This seamlessly handles nested folders like "Codes/Python"
+    fs::create_directories(target_dir, ec);
     
     fs::path unique_target = get_unique_path(target_dir, file_path.filename());
     fs::rename(file_path, unique_target, ec);
@@ -291,6 +293,53 @@ void prune_empty_folders(const fs::path& watch_dir) {
     if (empty_count > 0) log_message("Pruned " + std::to_string(empty_count) + " empty folders.");
 }
 
+void print_directory_stats(const fs::path& watch_dir) {
+    std::error_code ec;
+    uintmax_t total_bytes = 0;
+    uint32_t total_files = 0;
+    std::map<std::string, std::pair<uint32_t, uintmax_t>> category_stats;
+
+    for (const auto& entry : fs::recursive_directory_iterator(watch_dir, fs::directory_options::skip_permission_denied, ec)) {
+        if (entry.is_regular_file(ec)) {
+            total_files++;
+            uintmax_t fsize = entry.file_size(ec);
+            total_bytes += fsize;
+
+            fs::path rel_path = fs::relative(entry.path(), watch_dir, ec);
+            std::string top_folder = "Misc";
+            
+            if (!rel_path.empty()) {
+                auto it = rel_path.begin();
+                if (it != rel_path.end()) {
+                    top_folder = it->string();
+                }
+            }
+
+            category_stats[top_folder].first++;  
+            category_stats[top_folder].second += fsize; 
+        }
+    }
+
+    double total_mb = static_cast<double>(total_bytes) / (1024 * 1024);
+
+    std::cout << "\n" << CYAN << "=== File Hygiene Storage Stats ===" << RESET << "\n";
+    std::cout << "Target Directory: " << watch_dir.string() << "\n";
+    std::cout << "Total Files Tracked: " << YELLOW << total_files << RESET << "\n";
+    std::cout << "Total Disk Usage: " << YELLOW << std::fixed << std::setprecision(2) << total_mb << " MB" << RESET << "\n\n";
+    std::cout << std::left << std::setw(25) << "Category / Folder" 
+              << std::setw(15) << "File Count" 
+              << std::setw(15) << "Size (MB)" << "\n";
+    std::cout << std::string(55, '-') << "\n";
+
+    for (const auto& pair : category_stats) {
+        double cat_mb = static_cast<double>(pair.second.second) / (1024 * 1024);
+        std::cout << std::left << std::setw(25) << pair.first 
+                  << std::setw(15) << pair.second.first 
+                  << std::setw(15) << std::fixed << std::setprecision(2) << cat_mb << "\n";
+    }
+    std::cout << CYAN << "==================================" << RESET << "\n\n";
+}
+
 void watcher_worker(fs::path watch_dir, std::set<std::string> seen_hashes, fs::path hash_file) {
     g_hDir = CreateFileW(
         watch_dir.c_str(),
@@ -353,6 +402,7 @@ void print_help() {
     std::cout << "  " << YELLOW << "status" << RESET << "                - Check if the watcher is running\n";
     std::cout << "  " << YELLOW << "path" << RESET << "                  - View current target path or change it (e.g., path C:\\Folder)\n";
     std::cout << "  " << YELLOW << "scan" << RESET << "                  - Manually organize existing files right now\n";
+    std::cout << "  " << YELLOW << "stats" << RESET << "                 - Show storage analytics and category breakdowns\n";
     std::cout << "  " << YELLOW << "clean" << RESET << "                 - Force archive files older than 30 days\n";
     std::cout << "  " << YELLOW << "prune" << RESET << "                 - Delete all empty folders in the target directory\n";
     std::cout << "  " << YELLOW << "custom delete <word>" << RESET << "  - Deletes all files recursively containing the word or .extension\n";
@@ -445,7 +495,6 @@ int main() {
                 }
             }
         }
-        // NEW COMMAND: Custom Delete
         else if (cmd.rfind("custom delete ", 0) == 0) {
             std::string keyword = cmd.substr(14);
             if (keyword.empty()) {
@@ -453,7 +502,6 @@ int main() {
             } else {
                 int del_count = 0;
                 std::error_code ec;
-                // Recursively search and delete files containing the keyword
                 for (auto it = fs::recursive_directory_iterator(watch_dir, fs::directory_options::skip_permission_denied, ec);
                      it != fs::recursive_directory_iterator(); ++it) {
                     if (it->is_regular_file(ec)) {
@@ -468,7 +516,6 @@ int main() {
                 std::cout << GREEN << "Deleted " << del_count << " files containing '" << keyword << "'.\n" << RESET;
             }
         }
-        // NEW COMMAND: Custom Directory grouping
         else if (cmd.rfind("custom dir ", 0) == 0) {
             std::string args = cmd.substr(11);
             std::istringstream iss(args);
@@ -482,11 +529,9 @@ int main() {
                 int move_count = 0;
                 std::vector<fs::path> to_move;
                 
-                // Collect files first to prevent iterating over actively moving items
                 for (auto it = fs::recursive_directory_iterator(watch_dir, fs::directory_options::skip_permission_denied, ec);
                      it != fs::recursive_directory_iterator(); ++it) {
                     if (it->is_regular_file(ec)) {
-                        // Skip if the file is already inside the exact target directory
                         if (it->path().parent_path() == custom_path) continue;
                         
                         std::string fname = it->path().filename().string();
@@ -512,6 +557,10 @@ int main() {
             std::cout << "Scanning target directory...\n";
             scan_existing_files(watch_dir, seen_hashes, hash_file);
             std::cout << GREEN << "Scan complete.\n" << RESET;
+        }
+        else if (cmd == "stats") {
+            std::cout << "Analyzing storage footprint...\n";
+            print_directory_stats(watch_dir);
         }
         else if (cmd == "clean") {
             std::cout << "Archiving old files...\n";
