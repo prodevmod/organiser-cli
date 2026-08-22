@@ -15,7 +15,7 @@ I actually got to use concept like hashing that considered useless (rly) because
 
 ## Installation
 ### Using Releases (recommended)
-  * Navigate to the **[Releases]([https://example.com](https://github.com/prodevmod/organiser-cli/releases))** section. 
+  * Navigate to the **[Releases](https://github.com/prodevmod/organiser-cli/releases)** section.
   * Click on the latest release.
   * Download organiser.exe (C++)(recommended) or organiserpy.exe (Python) by clicking on either.
   * Place the executable in your preferred directory or add it to your system PATH.
