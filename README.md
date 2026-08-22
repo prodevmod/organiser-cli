@@ -60,7 +60,7 @@ Both implementations share identical command structures and functionality:
 | Feature | C++ Executable (`organiser.exe`) | Python Executable (`organiserpy.exe`) |
 | :--- | :--- | :--- |
 | **Performance** | Instantaneous / Native | Micro-delay on cold start |
-| **Binary Size** | **~265 KB**  *(Recommended)* | **~7.2 MB** |
+| **Binary Size** | **~3.73 MB**  *(Recommended)* | **~7.2 MB** |
 | **Dependencies** | None (Native Windows APIs) | PyInstaller / Watchdog runtime bundle |
 
 ## A deeper look into categories
