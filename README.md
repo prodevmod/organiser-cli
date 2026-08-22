@@ -1,5 +1,7 @@
 # ORGANISER-CLI
 (the fact that it is a cli is purely stylistic (**bash toolbox nostalgia**))
+<img width="764" height="227" alt="image" src="https://github.com/user-attachments/assets/b6d94f6e-7f07-4d53-abf0-0852cfe55f45" />
+
 ## Python ex.
 <img width="664" height="327" alt="image" src="https://github.com/user-attachments/assets/a424a727-64fe-497c-9bc6-74c71e0a7ebc" />
 
