@@ -30,15 +30,51 @@ BANNER = RED + r"""
                     |  $$$$$$/                                                      | $$      |  $$$$$$/
                      \______/                                                       |__/       \______/ """ + RESET
 
-CATEGORIES = {
-    "Apps_and_Setups": {".exe", ".msi", ".dmg", ".pkg", ".deb", ".rpm"},
-    "Code": {".py", ".pyw", ".ipynb", ".cpp", ".c", ".h", ".hpp", ".cc", ".cs", ".js", ".ts", ".jsx", ".tsx", ".html", ".css", ".scss", ".json", ".xml", ".yaml", ".yml", ".rs", ".go", ".java", ".php", ".rb", ".swift", ".kt", ".sql", ".sh", ".bat", ".cmd", ".ps1"},
-    "Game_Engines": {".unitypackage", ".uproject", ".godot", ".unity", ".prefab", ".tscn", ".tres", ".asset"},
-    "3D_Models": {".obj", ".fbx", ".blend", ".stl", ".gltf", ".glb", ".dae", ".ply", ".3ds", ".step", ".stp", ".iges"},
-    "Documents": {".pdf", ".docx", ".doc", ".txt", ".xlsx", ".csv", ".pptx", ".md"},
-    "Images": {".png", ".jpg", ".jpeg", ".svg", ".gif", ".webp", ".ico", ".psd", ".ai"},
-    "Archives": {".zip", ".tar", ".gz", ".7z", ".rar", ".iso", ".tgz"},
-    "Media": {".mp4", ".mp3", ".mkv", ".wav", ".mov", ".avi", ".flac", ".ogg"}
+# Expanded categories with subfolders
+EXT_MAP = {
+    # Apps
+    ".exe": "Apps/Windows", ".msi": "Apps/Windows",
+    ".dmg": "Apps/Mac", ".pkg": "Apps/Mac",
+    ".deb": "Apps/Linux", ".rpm": "Apps/Linux",
+    
+    # Codes
+    ".py": "Codes/Python", ".pyw": "Codes/Python", ".ipynb": "Codes/Python",
+    ".cpp": "Codes/CPP", ".c": "Codes/C", ".h": "Codes/C_CPP_Headers", ".hpp": "Codes/C_CPP_Headers", ".cc": "Codes/CPP",
+    ".cs": "Codes/CSharp", ".js": "Codes/JavaScript", ".ts": "Codes/TypeScript", ".jsx": "Codes/React", ".tsx": "Codes/React",
+    ".html": "Codes/Web", ".css": "Codes/Web", ".scss": "Codes/Web",
+    ".json": "Codes/Data", ".xml": "Codes/Data", ".yaml": "Codes/Data", ".yml": "Codes/Data",
+    ".rs": "Codes/Rust", ".go": "Codes/Go", ".java": "Codes/Java", ".php": "Codes/PHP",
+    ".rb": "Codes/Ruby", ".swift": "Codes/Swift", ".kt": "Codes/Kotlin", ".sql": "Codes/Database",
+    ".sh": "Codes/Scripts", ".bat": "Codes/Scripts", ".cmd": "Codes/Scripts", ".ps1": "Codes/Scripts",
+
+    # Game Engines
+    ".unitypackage": "Game_Engines/Unity", ".unity": "Game_Engines/Unity", ".prefab": "Game_Engines/Unity", ".asset": "Game_Engines/Unity",
+    ".uproject": "Game_Engines/Unreal", 
+    ".godot": "Game_Engines/Godot", ".tscn": "Game_Engines/Godot", ".tres": "Game_Engines/Godot",
+
+    # 3D Models
+    ".obj": "3D_Models/OBJ", ".fbx": "3D_Models/FBX", ".blend": "3D_Models/Blender",
+    ".stl": "3D_Models/STL", ".gltf": "3D_Models/GLTF", ".glb": "3D_Models/GLTF",
+    ".dae": "3D_Models/Collada", ".ply": "3D_Models/PLY", ".3ds": "3D_Models/3DS",
+    ".step": "3D_Models/CAD", ".stp": "3D_Models/CAD", ".iges": "3D_Models/CAD",
+
+    # Documents
+    ".pdf": "Documents/PDF", ".docx": "Documents/Word", ".doc": "Documents/Word",
+    ".txt": "Documents/Text", ".xlsx": "Documents/Excel", ".csv": "Documents/Data",
+    ".pptx": "Documents/PowerPoint", ".md": "Documents/Markdown",
+
+    # Images
+    ".png": "Images/PNG", ".jpg": "Images/JPEG", ".jpeg": "Images/JPEG",
+    ".svg": "Images/Vector", ".gif": "Images/GIF", ".webp": "Images/WebP",
+    ".ico": "Images/Icons", ".psd": "Images/Photoshop", ".ai": "Images/Illustrator",
+
+    # Archives
+    ".zip": "Archives/ZIP", ".tar": "Archives/TAR", ".gz": "Archives/GZ",
+    ".7z": "Archives/7Z", ".rar": "Archives/RAR", ".iso": "Archives/ISO", ".tgz": "Archives/TAR",
+
+    # Media
+    ".mp4": "Media/Video", ".mkv": "Media/Video", ".mov": "Media/Video", ".avi": "Media/Video",
+    ".mp3": "Media/Audio", ".wav": "Media/Audio", ".flac": "Media/Audio", ".ogg": "Media/Audio"
 }
 
 class OrganizerHandler(FileSystemEventHandler):
@@ -120,6 +156,20 @@ class CLI:
             time.sleep(delay)
         return False
 
+    def get_unique_path(self, target_dir, filename):
+        """Generates a unique path by appending _1, _2, etc. if the file exists."""
+        target_path = target_dir / filename
+        if not target_path.exists():
+            return target_path
+            
+        stem = target_path.stem
+        ext = target_path.suffix
+        counter = 1
+        while target_path.exists():
+            target_path = target_dir / f"{stem}_{counter}{ext}"
+            counter += 1
+        return target_path
+
     def process_file(self, file_path):
         # Ignore hidden files, temporary downloads, or directories
         if file_path.name.startswith(".") or file_path.suffix.lower() in {".crdownload", ".tmp", ".part"}:
@@ -146,9 +196,10 @@ class CLI:
         # Handle duplicate files
         if is_duplicate:
             duplicates_dir.mkdir(exist_ok=True)
+            unique_target = self.get_unique_path(duplicates_dir, file_path.name)
             try:
-                shutil.move(str(file_path), duplicates_dir / file_path.name)
-                self.log(f"Moved duplicate: {file_path.name}")
+                shutil.move(str(file_path), unique_target)
+                self.log(f"Moved duplicate: {file_path.name} -> Duplicates/{unique_target.name}")
             except Exception as e:
                 self.log(f"Failed to move duplicate {file_path.name}: {e}")
             return
@@ -156,17 +207,15 @@ class CLI:
         # If it's a new file, save the hash database
         self.save_hashes()
 
-        # Determine target category folder
-        target_folder = self.watch_dir / "Misc"
-        for category, exts in CATEGORIES.items():
-            if file_path.suffix.lower() in exts:
-                target_folder = self.watch_dir / category
-                break
+        # Determine target category folder using the dictionary
+        target_category = EXT_MAP.get(file_path.suffix.lower(), "Misc")
+        target_folder = self.watch_dir / target_category
 
         target_folder.mkdir(parents=True, exist_ok=True)
+        unique_target = self.get_unique_path(target_folder, file_path.name)
         try:
-            shutil.move(str(file_path), target_folder / file_path.name)
-            self.log(f"Organized: {file_path.name} -> {target_folder.relative_to(self.watch_dir)}/")
+            shutil.move(str(file_path), unique_target)
+            self.log(f"Organized: {file_path.name} -> {target_category}/{unique_target.name}")
         except Exception as e:
             self.log(f"Failed to organize {file_path.name}: {e}")
 
@@ -182,7 +231,8 @@ class CLI:
                     if path.is_file() and datetime.fromtimestamp(path.stat().st_mtime) < cutoff:
                         try:
                             archive_dir.mkdir(exist_ok=True)
-                            shutil.move(str(path), archive_dir / path.name)
+                            unique_target = self.get_unique_path(archive_dir, path.name)
+                            shutil.move(str(path), unique_target)
                             count += 1
                         except Exception:
                             pass
@@ -216,15 +266,17 @@ class CLI:
 
     def print_help(self):
         print(f"\n{CYAN}Available Commands:{RESET}")
-        print(f"  {GREEN}start{RESET}       - Start watching the target directory")
-        print(f"  {RED}stop{RESET}        - Stop watching the directory")
-        print(f"  {YELLOW}status{RESET}      - Check if the watcher is running & current path")
-        print(f"  {YELLOW}path{RESET}        - View current target path or change it (e.g., path C:\\Folder)")
-        print(f"  {YELLOW}scan{RESET}        - Manually organize existing files right now")
-        print(f"  {YELLOW}clean{RESET}       - Force archive files older than 30 days")
-        print(f"  {YELLOW}prune{RESET}       - Delete all empty folders in the target directory")
-        print(f"  {CYAN}help{RESET}        - Show this menu")
-        print(f"  {RED}exit{RESET}        - Close the program\n")
+        print(f"  {GREEN}start{RESET}                 - Start watching the target directory")
+        print(f"  {RED}stop{RESET}                  - Stop watching the directory")
+        print(f"  {YELLOW}status{RESET}                - Check if the watcher is running & current path")
+        print(f"  {YELLOW}path{RESET}                  - View current target path or change it (e.g., path C:\\Folder)")
+        print(f"  {YELLOW}scan{RESET}                  - Manually organize existing files right now")
+        print(f"  {YELLOW}clean{RESET}                 - Force archive files older than 30 days")
+        print(f"  {YELLOW}prune{RESET}                 - Delete all empty folders in the target directory")
+        print(f"  {YELLOW}custom delete <word>{RESET}  - Deletes all files recursively containing the word or .extension")
+        print(f"  {YELLOW}custom dir <dir> <kw>{RESET} - Groups all files recursively containing the keyword into a new folder")
+        print(f"  {CYAN}help{RESET}                  - Show this menu")
+        print(f"  {RED}exit{RESET}                  - Close the program\n")
 
     def run_watcher(self):
         self.observer = Observer()
@@ -291,6 +343,46 @@ class CLI:
                         else:
                             print(f"{RED}Error: Invalid path or directory does not exist.{RESET}")
                             
+                elif cmd.lower().startswith("custom delete "):
+                    keyword = cmd[14:].strip()
+                    if not keyword:
+                        print(f"{RED}Error: Provide a keyword/extension (e.g., custom delete .tmp){RESET}")
+                    else:
+                        del_count = 0
+                        for path in self.watch_dir.rglob("*"):
+                            if path.is_file() and keyword in path.name:
+                                try:
+                                    path.unlink()
+                                    del_count += 1
+                                except Exception:
+                                    pass
+                        print(f"{GREEN}Deleted {del_count} files containing '{keyword}'.{RESET}")
+                        
+                elif cmd.lower().startswith("custom dir "):
+                    args = cmd[11:].strip().split(maxsplit=1)
+                    if len(args) == 2:
+                        folder_name, keyword = args
+                        custom_path = self.watch_dir / folder_name
+                        custom_path.mkdir(exist_ok=True)
+                        
+                        move_count = 0
+                        # Pre-collect to prevent modifying the directory while iterating
+                        to_move = [
+                            p for p in self.watch_dir.rglob("*") 
+                            if p.is_file() and keyword in p.name and custom_path not in p.parents
+                        ]
+                        
+                        for path in to_move:
+                            unique_target = self.get_unique_path(custom_path, path.name)
+                            try:
+                                shutil.move(str(path), unique_target)
+                                move_count += 1
+                            except Exception:
+                                pass
+                        print(f"{GREEN}Grouped {move_count} files containing '{keyword}' into '{folder_name}'.{RESET}")
+                    else:
+                        print(f"{RED}Error: Invalid format. Use: custom dir <FolderName> <keyword>{RESET}")
+
                 elif cmd.lower() == "scan":
                     print("Scanning target directory...")
                     count = 0

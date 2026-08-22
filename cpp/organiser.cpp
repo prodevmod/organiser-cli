@@ -10,6 +10,7 @@
 #include <atomic>
 #include <mutex>
 #include <algorithm>
+#include <sstream>
 #include <windows.h>
 #include <wincrypt.h>
 
@@ -37,42 +38,49 @@ const std::string BANNER = RED + R"(
                      \______/                                                                 |__/      |__/      
 )" + RESET;
 const std::map<std::string, std::string> EXTENSION_MAP = {
-    {".exe", "Apps/Setups_and_Maintainers"}, {".msi", "Apps/Setups_and_Maintainers"},
-    {".dmg", "Apps/Setups_and_Maintainers"}, {".pkg", "Apps/Setups_and_Maintainers"},
-    {".deb", "Apps/Setups_and_Maintainers"}, {".rpm", "Apps/Setups_and_Maintainers"},
+    // Apps
+    {".exe", "Apps/Windows"}, {".msi", "Apps/Windows"},
+    {".dmg", "Apps/Mac"}, {".pkg", "Apps/Mac"},
+    {".deb", "Apps/Linux"}, {".rpm", "Apps/Linux"},
     
-    {".py", "Codes"}, {".pyw", "Codes"}, {".ipynb", "Codes"},
-    {".cpp", "Codes"}, {".c", "Codes"}, {".h", "Codes"}, {".hpp", "Codes"}, {".cc", "Codes"},
-    {".cs", "Codes"}, {".js", "Codes"}, {".ts", "Codes"}, {".jsx", "Codes"}, {".tsx", "Codes"},
-    {".html", "Codes"}, {".css", "Codes"}, {".scss", "Codes"},
-    {".json", "Codes"}, {".xml", "Codes"}, {".yaml", "Codes"}, {".yml", "Codes"},
-    {".rs", "Codes"}, {".go", "Codes"}, {".java", "Codes"}, {".php", "Codes"},
-    {".rb", "Codes"}, {".swift", "Codes"}, {".kt", "Codes"}, {".sql", "Codes"},
-    {".sh", "Codes"}, {".bat", "Codes"}, {".cmd", "Codes"}, {".ps1", "Codes"},
+    // Codes
+    {".py", "Codes/Python"}, {".pyw", "Codes/Python"}, {".ipynb", "Codes/Python"},
+    {".cpp", "Codes/CPP"}, {".c", "Codes/C"}, {".h", "Codes/C_CPP_Headers"}, {".hpp", "Codes/C_CPP_Headers"}, {".cc", "Codes/CPP"},
+    {".cs", "Codes/CSharp"}, {".js", "Codes/JavaScript"}, {".ts", "Codes/TypeScript"}, {".jsx", "Codes/React"}, {".tsx", "Codes/React"},
+    {".html", "Codes/Web"}, {".css", "Codes/Web"}, {".scss", "Codes/Web"},
+    {".json", "Codes/Data"}, {".xml", "Codes/Data"}, {".yaml", "Codes/Data"}, {".yml", "Codes/Data"},
+    {".rs", "Codes/Rust"}, {".go", "Codes/Go"}, {".java", "Codes/Java"}, {".php", "Codes/PHP"},
+    {".rb", "Codes/Ruby"}, {".swift", "Codes/Swift"}, {".kt", "Codes/Kotlin"}, {".sql", "Codes/Database"},
+    {".sh", "Codes/Scripts"}, {".bat", "Codes/Scripts"}, {".cmd", "Codes/Scripts"}, {".ps1", "Codes/Scripts"},
 
-    {".unitypackage", "Game_Engines"}, {".uproject", "Game_Engines"}, {".godot", "Game_Engines"},
-    {".unity", "Game_Engines"}, {".prefab", "Game_Engines"}, {".tscn", "Game_Engines"},
-    {".tres", "Game_Engines"}, {".asset", "Game_Engines"},
+    // Game Engines
+    {".unitypackage", "Game_Engines/Unity"}, {".unity", "Game_Engines/Unity"}, {".prefab", "Game_Engines/Unity"}, {".asset", "Game_Engines/Unity"},
+    {".uproject", "Game_Engines/Unreal"}, 
+    {".godot", "Game_Engines/Godot"}, {".tscn", "Game_Engines/Godot"}, {".tres", "Game_Engines/Godot"},
 
-    {".obj", "3D_Models"}, {".fbx", "3D_Models"}, {".blend", "3D_Models"},
-    {".stl", "3D_Models"}, {".gltf", "3D_Models"}, {".glb", "3D_Models"},
-    {".dae", "3D_Models"}, {".ply", "3D_Models"}, {".3ds", "3D_Models"},
-    {".step", "3D_Models"}, {".stp", "3D_Models"}, {".iges", "3D_Models"},
+    // 3D Models
+    {".obj", "3D_Models/OBJ"}, {".fbx", "3D_Models/FBX"}, {".blend", "3D_Models/Blender"},
+    {".stl", "3D_Models/STL"}, {".gltf", "3D_Models/GLTF"}, {".glb", "3D_Models/GLTF"},
+    {".dae", "3D_Models/Collada"}, {".ply", "3D_Models/PLY"}, {".3ds", "3D_Models/3DS"},
+    {".step", "3D_Models/CAD"}, {".stp", "3D_Models/CAD"}, {".iges", "3D_Models/CAD"},
 
-    {".pdf", "Documents"}, {".docx", "Documents"}, {".doc", "Documents"},
-    {".txt", "Documents"}, {".xlsx", "Documents"}, {".csv", "Documents"},
-    {".pptx", "Documents"}, {".md", "Documents"},
+    // Documents
+    {".pdf", "Documents/PDF"}, {".docx", "Documents/Word"}, {".doc", "Documents/Word"},
+    {".txt", "Documents/Text"}, {".xlsx", "Documents/Excel"}, {".csv", "Documents/Data"},
+    {".pptx", "Documents/PowerPoint"}, {".md", "Documents/Markdown"},
 
-    {".png", "Images"}, {".jpg", "Images"}, {".jpeg", "Images"},
-    {".svg", "Images"}, {".gif", "Images"}, {".webp", "Images"},
-    {".ico", "Images"}, {".psd", "Images"}, {".ai", "Images"},
+    // Images
+    {".png", "Images/PNG"}, {".jpg", "Images/JPEG"}, {".jpeg", "Images/JPEG"},
+    {".svg", "Images/Vector"}, {".gif", "Images/GIF"}, {".webp", "Images/WebP"},
+    {".ico", "Images/Icons"}, {".psd", "Images/Photoshop"}, {".ai", "Images/Illustrator"},
 
-    {".zip", "Archives"}, {".tar", "Archives"}, {".gz", "Archives"},
-    {".7z", "Archives"}, {".rar", "Archives"}, {".iso", "Archives"}, {".tgz", "Archives"},
+    // Archives
+    {".zip", "Archives/ZIP"}, {".tar", "Archives/TAR"}, {".gz", "Archives/GZ"},
+    {".7z", "Archives/7Z"}, {".rar", "Archives/RAR"}, {".iso", "Archives/ISO"}, {".tgz", "Archives/TAR"},
 
-    {".mp4", "Media"}, {".mp3", "Media"}, {".mkv", "Media"},
-    {".wav", "Media"}, {".mov", "Media"}, {".avi", "Media"},
-    {".flac", "Media"}, {".ogg", "Media"}
+    // Media
+    {".mp4", "Media/Video"}, {".mkv", "Media/Video"}, {".mov", "Media/Video"}, {".avi", "Media/Video"},
+    {".mp3", "Media/Audio"}, {".wav", "Media/Audio"}, {".flac", "Media/Audio"}, {".ogg", "Media/Audio"}
 };
 
 std::atomic<bool> is_running(false);
@@ -210,7 +218,7 @@ void process_file(const fs::path& file_path, const fs::path& watch_dir, std::set
     }
 
     fs::path target_dir = watch_dir / target_category;
-    fs::create_directories(target_dir, ec);
+    fs::create_directories(target_dir, ec); // This seamlessly handles nested folders like "Codes/Python"
     
     fs::path unique_target = get_unique_path(target_dir, file_path.filename());
     fs::rename(file_path, unique_target, ec);
@@ -340,15 +348,17 @@ void watcher_worker(fs::path watch_dir, std::set<std::string> seen_hashes, fs::p
 
 void print_help() {
     std::cout << "\n" << CYAN << "Available Commands:" << RESET << "\n";
-    std::cout << "  " << GREEN << "start" << RESET << "       - Start watching the target folder\n";
-    std::cout << "  " << RED << "stop" << RESET << "        - Stop watching the folder\n";
-    std::cout << "  " << YELLOW << "status" << RESET << "      - Check if the watcher is running\n";
-    std::cout << "  " << YELLOW << "path" << RESET << "        - View current target path or change it (e.g., path C:\\Folder)\n";
-    std::cout << "  " << YELLOW << "scan" << RESET << "        - Manually organize existing files right now\n";
-    std::cout << "  " << YELLOW << "clean" << RESET << "       - Force archive files older than 30 days\n";
-    std::cout << "  " << YELLOW << "prune" << RESET << "       - Delete all empty folders in the target directory\n";
-    std::cout << "  " << CYAN << "help" << RESET << "        - Show this menu\n";
-    std::cout << "  " << RED << "exit" << RESET << "        - Close the program\n\n";
+    std::cout << "  " << GREEN << "start" << RESET << "                 - Start watching the target folder\n";
+    std::cout << "  " << RED << "stop" << RESET << "                  - Stop watching the folder\n";
+    std::cout << "  " << YELLOW << "status" << RESET << "                - Check if the watcher is running\n";
+    std::cout << "  " << YELLOW << "path" << RESET << "                  - View current target path or change it (e.g., path C:\\Folder)\n";
+    std::cout << "  " << YELLOW << "scan" << RESET << "                  - Manually organize existing files right now\n";
+    std::cout << "  " << YELLOW << "clean" << RESET << "                 - Force archive files older than 30 days\n";
+    std::cout << "  " << YELLOW << "prune" << RESET << "                 - Delete all empty folders in the target directory\n";
+    std::cout << "  " << YELLOW << "custom delete <word>" << RESET << "  - Deletes all files recursively containing the word or .extension\n";
+    std::cout << "  " << YELLOW << "custom dir <dir> <kw>" << RESET << " - Groups all files recursively containing the keyword into a new folder\n";
+    std::cout << "  " << CYAN << "help" << RESET << "                  - Show this menu\n";
+    std::cout << "  " << RED << "exit" << RESET << "                  - Close the program\n\n";
 }
 
 int main() {
@@ -433,6 +443,69 @@ int main() {
                 } else {
                     std::cout << RED << "Error: Invalid path or directory does not exist.\n" << RESET;
                 }
+            }
+        }
+        // NEW COMMAND: Custom Delete
+        else if (cmd.rfind("custom delete ", 0) == 0) {
+            std::string keyword = cmd.substr(14);
+            if (keyword.empty()) {
+                std::cout << RED << "Error: Provide a keyword/extension (e.g., custom delete .tmp)\n" << RESET;
+            } else {
+                int del_count = 0;
+                std::error_code ec;
+                // Recursively search and delete files containing the keyword
+                for (auto it = fs::recursive_directory_iterator(watch_dir, fs::directory_options::skip_permission_denied, ec);
+                     it != fs::recursive_directory_iterator(); ++it) {
+                    if (it->is_regular_file(ec)) {
+                        std::string fname = it->path().filename().string();
+                        if (fname.find(keyword) != std::string::npos) {
+                            if (fs::remove(it->path(), ec)) {
+                                del_count++;
+                            }
+                        }
+                    }
+                }
+                std::cout << GREEN << "Deleted " << del_count << " files containing '" << keyword << "'.\n" << RESET;
+            }
+        }
+        // NEW COMMAND: Custom Directory grouping
+        else if (cmd.rfind("custom dir ", 0) == 0) {
+            std::string args = cmd.substr(11);
+            std::istringstream iss(args);
+            std::string folder_name, keyword;
+            
+            if (iss >> folder_name >> keyword) {
+                fs::path custom_path = watch_dir / folder_name;
+                std::error_code ec;
+                fs::create_directories(custom_path, ec);
+                
+                int move_count = 0;
+                std::vector<fs::path> to_move;
+                
+                // Collect files first to prevent iterating over actively moving items
+                for (auto it = fs::recursive_directory_iterator(watch_dir, fs::directory_options::skip_permission_denied, ec);
+                     it != fs::recursive_directory_iterator(); ++it) {
+                    if (it->is_regular_file(ec)) {
+                        // Skip if the file is already inside the exact target directory
+                        if (it->path().parent_path() == custom_path) continue;
+                        
+                        std::string fname = it->path().filename().string();
+                        if (fname.find(keyword) != std::string::npos) {
+                            to_move.push_back(it->path());
+                        }
+                    }
+                }
+                
+                for (const auto& p : to_move) {
+                    fs::path unique_target = get_unique_path(custom_path, p.filename());
+                    if (fs::exists(p)) {
+                        fs::rename(p, unique_target, ec);
+                        if (!ec) move_count++;
+                    }
+                }
+                std::cout << GREEN << "Grouped " << move_count << " files containing '" << keyword << "' into '" << folder_name << "'.\n" << RESET;
+            } else {
+                std::cout << RED << "Error: Invalid format. Use: custom dir <FolderName> <keyword>\n" << RESET;
             }
         }
         else if (cmd == "scan") {
